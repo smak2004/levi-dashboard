@@ -283,6 +283,7 @@ export default function App() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null)
   const [research, setResearch] = useState<ResearchItem[]>([])
   const [thinkLog, setThinkLog] = useState<string>('')
+  const [liveTrades, setLiveTrades] = useState<any[]>([])
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [thinking, setThinking] = useState(false)
   const [resolving, setResolving] = useState(false)
@@ -293,10 +294,11 @@ export default function App() {
   const fetchAll = useCallback(async () => {
     try {
       const ts = Date.now()
-      const [portfolioRes, researchRes, thinkLogRes] = await Promise.allSettled([
+      const [portfolioRes, researchRes, thinkLogRes, liveTradesRes] = await Promise.allSettled([
         fetch(`${API_URL}/portfolio?t=${ts}`).then(r => r.json()),
         fetch(`${API_URL}/research?t=${ts}`).then(r => r.json()),
         fetch(`${API_URL}/think-log?t=${ts}`).then(r => r.json()),
+        fetch(`${API_URL}/live-trades?t=${ts}`).then(r => r.json()),
       ])
 
       if (portfolioRes.status === 'fulfilled') setPortfolio(portfolioRes.value)
@@ -306,6 +308,9 @@ export default function App() {
       }
       if (thinkLogRes.status === 'fulfilled') {
         setThinkLog(thinkLogRes.value?.log || '')
+      }
+      if (liveTradesRes.status === 'fulfilled' && Array.isArray(liveTradesRes.value)) {
+        setLiveTrades(liveTradesRes.value.slice(0, 10))
       }
       setLastUpdated(new Date())
       setError(null)
@@ -578,6 +583,36 @@ export default function App() {
           <div style={card}>
             <SectionHeader title="Portfolio Curve" />
             <PortfolioCurve portfolio={portfolio} />
+          </div>
+
+          {/* Live Polymarket Trades */}
+          <div style={card}>
+            <SectionHeader title="🔴 Live Polymarket Orders" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {liveTrades.length === 0 ? (
+                <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: '#333' }}>No live trades yet</div>
+              ) : liveTrades.map((t: any, i: number) => (
+                <div key={t.id || i} style={{
+                  padding: '7px 10px', borderRadius: 4,
+                  background: '#07070f', border: '1px solid #1a2a1a',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: t.side === 'BUY' ? '#00ff88' : '#ff3366', fontFamily: 'monospace', fontWeight: 700 }}>
+                      {t.side} {t.outcome?.toUpperCase()}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#00d4ff', fontFamily: 'monospace' }}>
+                      ${parseFloat(t.size || 0).toFixed(2)} @ {(parseFloat(t.price || 0) * 100).toFixed(1)}%
+                    </span>
+                    <span style={{ fontSize: 10, color: t.status === 'CONFIRMED' ? '#00ff88' : '#ffd700' }}>
+                      {t.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 10, color: '#444', fontFamily: 'monospace', marginTop: 2 }}>
+                    {t.transaction_hash ? t.transaction_hash.slice(0, 20) + '...' : t.taker_order_id?.slice(0, 20) + '...'}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Trade History */}
