@@ -292,10 +292,11 @@ export default function App() {
 
   const fetchAll = useCallback(async () => {
     try {
+      const ts = Date.now()
       const [portfolioRes, researchRes, thinkLogRes] = await Promise.allSettled([
-        fetch(`${API_URL}/portfolio`).then(r => r.json()),
-        fetch(`${API_URL}/research`).then(r => r.json()),
-        fetch(`${API_URL}/think-log`).then(r => r.json()),
+        fetch(`${API_URL}/portfolio?t=${ts}`).then(r => r.json()),
+        fetch(`${API_URL}/research?t=${ts}`).then(r => r.json()),
+        fetch(`${API_URL}/think-log?t=${ts}`).then(r => r.json()),
       ])
 
       if (portfolioRes.status === 'fulfilled') setPortfolio(portfolioRes.value)
@@ -315,7 +316,7 @@ export default function App() {
 
   useEffect(() => {
     fetchAll()
-    const interval = setInterval(fetchAll, 30000)
+    const interval = setInterval(fetchAll, 5000)
     return () => clearInterval(interval)
   }, [fetchAll])
 
